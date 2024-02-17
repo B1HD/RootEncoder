@@ -32,17 +32,30 @@ import com.pedro.encoder.utils.gl.GlUtil;
 @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class TextureLoader {
 
-  public int[] load(Bitmap[] bitmaps) {
-    int[] textureId = new int[bitmaps.length];
-    GlUtil.createTextures(bitmaps.length, textureId, 0);
-    for (int i = 0; i < bitmaps.length; i++) {
-      if (bitmaps[i] != null) {
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId[i]);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmaps[i], 0);
-        if (!bitmaps[i].isRecycled()) bitmaps[i].recycle();
-        bitmaps[i] = null;
-      }
+    public int[] load(Bitmap[] bitmaps) {
+        int[] textureId = new int[bitmaps.length];
+        GlUtil.createTextures(bitmaps.length, textureId, 0);
+        for (int i = 0; i < bitmaps.length; i++) {
+            if (bitmaps[i] != null) {
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId[i]);
+                GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmaps[i], 0);
+                // Removed the recycling of the bitmap here
+                // so they are not immediately recycled after being used
+                // if (!bitmaps[i].isRecycled()) bitmaps[i].recycle();
+                // Also, it might not be necessary to null the reference here,
+                // especially if you plan to recycle them later.
+                // bitmaps[i] = null;
+            }
+        }
+        return textureId;
     }
-    return textureId;
-  }
+
+    // Method to manually recycle bitmaps
+    public void recycleBitmaps(Bitmap[] bitmaps) {
+        for (Bitmap bitmap : bitmaps) {
+            if (bitmap != null && !bitmap.isRecycled()) {
+                bitmap.recycle();
+            }
+        }
+    }
 }
