@@ -12,7 +12,7 @@ android {
 
   defaultConfig {
     applicationId = "com.pedro.streamer"
-    minSdk = 16
+    minSdk = 19
     targetSdk = 34
     versionCode = vCode
     versionName = vName
