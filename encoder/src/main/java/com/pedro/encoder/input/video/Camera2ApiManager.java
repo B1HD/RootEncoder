@@ -101,6 +101,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private int fps = 30;
   private final Semaphore semaphore = new Semaphore(0);
   private CameraCallbacks cameraCallbacks;
+  private ImageAnalysis imageAnalysis;
 
   public interface ImageCallback {
     void onImageAvailable(Image image);
@@ -111,7 +112,57 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private FaceDetectorCallback faceDetectorCallback;
   private boolean faceDetectionEnabled = false;
   private int faceDetectionMode;
-  private ImageReader imageReader;
+  private BarcodeDetectorCallback barcodeDetectorCallback;
+private boolean barcodeScanningEnabled = false;
+
+public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
+  this.barcodeDetectorCallback = callback;
+  // Assuming you already have an ImageReader setup for camera preview
+  // Now, set the OnImageAvailableListener to process frames for barcode scanning
+  imageReader.setOnImageAvailableListener(reader -> {
+    try (Image image = reader.acquireNextImage()) {
+        frameCounter++; // Increment the counter for each frame
+
+        if (frameCounter % 10 == 0) { // Check if it's the 10th frame
+            // Reset the counter to avoid potential overflow issues
+            frameCounter = 0;
+
+            // Process the frame for barcode scanning
+            InputImage inputImage = InputImage.fromMediaImage(image, getRotationCompensation());
+            scanBarcodes(inputImage);
+        } else {
+            // Not processing this frame, so close it to free up resources
+            image.close();
+        }
+    } catch (Exception e) {
+        Log.e(TAG, "Error processing image for barcode scanning", e);
+    }
+}, cameraHandler);// Use the same handler you use for camera operations
+
+  barcodeScanningEnabled = true;
+  return true;
+}
+
+private void scanBarcodes(InputImage image) {
+  BarcodeScannerOptions options =
+          new BarcodeScannerOptions.Builder()
+                  .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                  .build();
+
+  BarcodeScanner scanner = BarcodeScanning.getClient(options);
+
+  scanner.process(image)
+          .addOnSuccessListener(barcodes -> {
+              if (barcodeDetectorCallback != null) {
+                  barcodeDetectorCallback.onBarcodesDetected(barcodes);
+              }
+          })
+          .addOnFailureListener(e -> {
+              if (barcodeDetectorCallback != null) {
+                  barcodeDetectorCallback.onBarcodeDetectionError(e);
+              }
+          });
+}
 
   public Camera2ApiManager(Context context) {
     cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
