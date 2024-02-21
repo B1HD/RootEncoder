@@ -42,6 +42,7 @@ dependencies {
   implementation("androidx.constraintlayout:constraintlayout:2.1.4")
   implementation("com.google.android.material:material:1.11.0")
   implementation("androidx.multidex:multidex:2.0.1")
+  implementation ("com.google.mlkit:barcode-scanning:17.2.0")
 
   val cameraxVersion = "1.3.1"
   implementation("androidx.camera:camera-core:$cameraxVersion")
