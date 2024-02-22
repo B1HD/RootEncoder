@@ -53,6 +53,7 @@ afterEvaluate {
 }
 
 dependencies {
+  implementation ("com.google.mlkit:barcode-scanning:17.2.0")
   testImplementation("junit:junit:$junitVersion")
   api("androidx.annotation:annotation:1.7.1")
   api(project(":common"))

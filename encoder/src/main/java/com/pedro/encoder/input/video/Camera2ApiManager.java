@@ -61,11 +61,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
-import com.google.mlkit.vision.barcode.Barcode;
+import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
-import com.google.mlkit.vision.barcode.common.Barcode;
+
 import com.google.mlkit.vision.common.InputImage;
 
 /**
@@ -122,6 +122,13 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private boolean barcodeScanningEnabled = false;
   private ImageReader imageReader;
 
+  private int frameCounter = 0;
+
+  public interface BarcodeDetectorCallback {
+    void onBarcodesDetected(List<Barcode> barcodes);
+    void onBarcodeDetectionError(Exception e);
+  }
+
 public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
   this.barcodeDetectorCallback = callback;
   // Assuming you already have an ImageReader setup for camera preview
@@ -170,6 +177,11 @@ private void scanBarcodes(InputImage image) {
               }
           });
 }
+
+  private int getRotationCompensation() {
+    // This is a simplified example. You need to implement rotation compensation based on your device and camera sensor orientation.
+    return 0; // Return the correct rotation value here.
+  }
 
   public Camera2ApiManager(Context context) {
     cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
