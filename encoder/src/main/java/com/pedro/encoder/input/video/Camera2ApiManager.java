@@ -61,6 +61,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import com.google.mlkit.vision.barcode.Barcode;
 
 /**
  * Created by pedro on 4/03/k17.
