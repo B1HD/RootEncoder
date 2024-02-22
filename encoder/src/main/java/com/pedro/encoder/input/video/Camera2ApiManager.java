@@ -63,7 +63,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 /**
- * Created by pedro on 4/03/17.
+ * Created by pedro on 4/03/k17.
  *
  * <p>
  * Class for use surfaceEncoder to buffer encoder.
@@ -101,7 +101,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private int fps = 30;
   private final Semaphore semaphore = new Semaphore(0);
   private CameraCallbacks cameraCallbacks;
-  private ImageAnalysis imageAnalysis;
+  
 
   public interface ImageCallback {
     void onImageAvailable(Image image);
@@ -113,7 +113,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private boolean faceDetectionEnabled = false;
   private int faceDetectionMode;
   private BarcodeDetectorCallback barcodeDetectorCallback;
-private boolean barcodeScanningEnabled = false;
+  private boolean barcodeScanningEnabled = false;
+  private ImageReader imageReader;
 
 public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
   this.barcodeDetectorCallback = callback;
