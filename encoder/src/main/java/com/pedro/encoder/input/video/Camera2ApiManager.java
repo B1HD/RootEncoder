@@ -157,26 +157,27 @@ public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
   return true;
 }
 
-private void scanBarcodes(InputImage image) {
-  BarcodeScannerOptions options =
-          new BarcodeScannerOptions.Builder()
-                  .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
-                  .build();
+  private void scanBarcodes(InputImage image) {
+    BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+            .build();
+    BarcodeScanner scanner = BarcodeScanning.getClient(options);
 
-  BarcodeScanner scanner = BarcodeScanning.getClient(options);
+    scanner.process(image)
+            .addOnSuccessListener(barcodes -> {
+              for (Barcode barcode : barcodes) {
+                String rawValue = barcode.getRawValue();
+                Log.d(TAG, "Barcode detected: " + rawValue);
+                // Here you can handle the barcode value...
+              }
+            })
+            .addOnFailureListener(e -> {
+              // Handle any errors
+              Log.e(TAG, "Barcode scanning failed", e);
+            });
+  }
 
-  scanner.process(image)
-          .addOnSuccessListener(barcodes -> {
-              if (barcodeDetectorCallback != null) {
-                  barcodeDetectorCallback.onBarcodesDetected(barcodes);
-              }
-          })
-          .addOnFailureListener(e -> {
-              if (barcodeDetectorCallback != null) {
-                  barcodeDetectorCallback.onBarcodeDetectionError(e);
-              }
-          });
-}
+
 
   private int getRotationCompensation() {
     // This is a simplified example. You need to implement rotation compensation based on your device and camera sensor orientation.
@@ -1094,6 +1095,8 @@ private void scanBarcodes(InputImage image) {
     running = false;
   }
 
+
+
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
     boolean wasRunning = running;
     closeCamera(false);
@@ -1101,14 +1104,25 @@ private void scanBarcodes(InputImage image) {
     if (imageReader != null) removeImageListener();
     HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
     imageThread.start();
+    Handler backgroundHandler = new Handler(imageThread.getLooper());
+
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = reader.acquireLatestImage();
       if (image != null) {
+        frameCounter++; // Increment frame counter
+        if (frameCounter % 10 == 0) { // Check if it's the 10th frame
+          // Convert the Image to an InputImage for barcode scanning
+          InputImage inputImage = InputImage.fromMediaImage(image, getRotationCompensation());
+          scanBarcodes(inputImage); // Perform barcode scanning
+          frameCounter = 0; // Reset the counter after scanning
+        }
+        // Notify the original listener if needed
         listener.onImageAvailable(image);
         if (autoClose) image.close();
       }
-    }, new Handler(imageThread.getLooper()));
+    }, backgroundHandler);
+
     if (wasRunning) {
       if (textureView != null) {
         prepareCamera(textureView, surfaceEncoder, fps);
