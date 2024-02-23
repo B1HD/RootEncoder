@@ -143,7 +143,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private void scanBarcodes(InputImage image) {
     BarcodeScannerOptions options =
             new BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                    .setBarcodeFormats(Barcode.FORMAT_CODE_39)
                     .build();
 
     BarcodeScanner scanner = BarcodeScanning.getClient(options);
@@ -153,11 +153,13 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
               // Task completed successfully
               if (barcodeDetectorCallback != null) {
                 barcodeDetectorCallback.onBarcodesDetected(barcodes);
+                Log.d(TAG, "scanBarcodes: Barcodes detected");
               }
             })
             .addOnFailureListener(e -> {
               // Task failed with an exception
               if (barcodeDetectorCallback != null) {
+                Log.d(TAG, "scanBarcodes: Barcode failed");
                 barcodeDetectorCallback.onBarcodeDetectionError(e);
               }
             });
