@@ -18,6 +18,7 @@ package com.pedro.encoder.input.video;
 
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_FRONT;
 import static com.pedro.encoder.input.video.CameraHelper.Facing;
+import static com.pedro.encoder.input.video.CameraHelper.getCameraOrientation;
 import static com.pedro.encoder.input.video.CameraHelper.getFingerSpacing;
 
 import android.annotation.SuppressLint;
@@ -48,11 +49,13 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import com.google.android.gms.tasks.Task;
 import com.pedro.encoder.input.video.facedetector.FaceDetectorCallback;
 import com.pedro.encoder.input.video.facedetector.UtilsKt;
 
@@ -119,7 +122,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private boolean faceDetectionEnabled = false;
   private int faceDetectionMode;
   private BarcodeDetectorCallback barcodeDetectorCallback;
-  private boolean barcodeScanningEnabled = false;
+  private boolean barcodeDetectionEnabled = false;
   private ImageReader imageReader;
 
   private int frameCounter = 0;
@@ -129,59 +132,106 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     void onBarcodeDetectionError(Exception e);
   }
 
-public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
-  this.barcodeDetectorCallback = callback;
-  // Assuming you already have an ImageReader setup for camera preview
-  // Now, set the OnImageAvailableListener to process frames for barcode scanning
-  imageReader.setOnImageAvailableListener(reader -> {
-    try (Image image = reader.acquireNextImage()) {
-        frameCounter++; // Increment the counter for each frame
-
-        if (frameCounter % 10 == 0) { // Check if it's the 10th frame
-            // Reset the counter to avoid potential overflow issues
-            frameCounter = 0;
-
-            // Process the frame for barcode scanning
-            InputImage inputImage = InputImage.fromMediaImage(image, getRotationCompensation());
-            scanBarcodes(inputImage);
-        } else {
-            // Not processing this frame, so close it to free up resources
-            image.close();
-        }
-    } catch (Exception e) {
-        Log.e(TAG, "Error processing image for barcode scanning", e);
-    }
-}, cameraHandler);// Use the same handler you use for camera operations
-
-  barcodeScanningEnabled = true;
-  return true;
-}
+  public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
+    this.barcodeDetectorCallback = callback;
+    barcodeDetectionEnabled = true;
+    // You may need to start or restart the camera capture session if necessary
+    return true;
+  }
 
   private void scanBarcodes(InputImage image) {
-    BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
-            .build();
+    BarcodeScannerOptions options =
+            new BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                    .build();
+
     BarcodeScanner scanner = BarcodeScanning.getClient(options);
 
-    scanner.process(image)
+    Task<List<Barcode>> result = scanner.process(image)
             .addOnSuccessListener(barcodes -> {
-              for (Barcode barcode : barcodes) {
-                String rawValue = barcode.getRawValue();
-                Log.d(TAG, "Barcode detected: " + rawValue);
-                // Here you can handle the barcode value...
+              // Task completed successfully
+              if (barcodeDetectorCallback != null) {
+                barcodeDetectorCallback.onBarcodesDetected(barcodes);
               }
             })
             .addOnFailureListener(e -> {
-              // Handle any errors
-              Log.e(TAG, "Barcode scanning failed", e);
+              // Task failed with an exception
+              if (barcodeDetectorCallback != null) {
+                barcodeDetectorCallback.onBarcodeDetectionError(e);
+              }
             });
   }
 
 
 
-  private int getRotationCompensation() {
-    // This is a simplified example. You need to implement rotation compensation based on your device and camera sensor orientation.
-    return 0; // Return the correct rotation value here.
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
+    boolean wasRunning = running;
+    closeCamera(false);
+    if (wasRunning) closeCamera(false);
+    if (imageReader != null) removeImageListener();
+    HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
+    imageThread.start();
+    imageReader = ImageReader.newInstance(width, height, format, maxImages);
+    imageReader.setOnImageAvailableListener(reader -> {
+      Image image = reader.acquireLatestImage();
+      if (image != null) {
+        InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(surfaceView.getContext()));
+        scanBarcodes(inputImage);
+        listener.onImageAvailable(image);
+        if (autoClose) image.close();
+      }
+    }, new Handler(imageThread.getLooper()));
+    if (wasRunning) {
+      if (textureView != null) {
+        prepareCamera(textureView, surfaceEncoder, fps);
+      } else if (surfaceView != null) {
+        prepareCamera(surfaceView, surfaceEncoder, fps);
+      } else {
+        prepareCamera(surfaceEncoder, fps);
+      }
+      openLastCamera();
+    }
+  }
+
+  public void removeImageListener() {
+    boolean wasRunning = running;
+    if (wasRunning) closeCamera(false);
+    if (imageReader != null) {
+      imageReader.close();
+      imageReader = null;
+    }
+    if (wasRunning) {
+      if (textureView != null) {
+        prepareCamera(textureView, surfaceEncoder, fps);
+      } else if (surfaceView != null) {
+        prepareCamera(surfaceView, surfaceEncoder, fps);
+      } else {
+        prepareCamera(surfaceEncoder, fps);
+      }
+      openLastCamera();
+    }
+  }
+
+
+
+  public static int getCameraOrientation(Context context) {
+    WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+    if (windowManager != null) {
+      int orientation = windowManager.getDefaultDisplay().getRotation();
+      return switch (orientation) {
+        case Surface.ROTATION_0 -> //portrait
+                90;
+        case Surface.ROTATION_90 -> //landscape
+                0;
+        case Surface.ROTATION_180 -> //reverse portrait
+                270;
+        case Surface.ROTATION_270 -> //reverse landscape
+                180;
+        default -> 0;
+      };
+    } else {
+      return 0;
+    }
   }
 
   public Camera2ApiManager(Context context) {
@@ -1071,6 +1121,7 @@ public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
 
   public void closeCamera() {
     closeCamera(true);
+
   }
 
   public void closeCamera(boolean resetSurface) {
@@ -1096,63 +1147,6 @@ public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
   }
 
 
-
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
-    boolean wasRunning = running;
-    closeCamera(false);
-    if (wasRunning) closeCamera(false);
-    if (imageReader != null) removeImageListener();
-    HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
-    imageThread.start();
-    Handler backgroundHandler = new Handler(imageThread.getLooper());
-
-    imageReader = ImageReader.newInstance(width, height, format, maxImages);
-    imageReader.setOnImageAvailableListener(reader -> {
-      Image image = reader.acquireLatestImage();
-      if (image != null) {
-        frameCounter++; // Increment frame counter
-        if (frameCounter % 10 == 0) { // Check if it's the 10th frame
-          // Convert the Image to an InputImage for barcode scanning
-          InputImage inputImage = InputImage.fromMediaImage(image, getRotationCompensation());
-          scanBarcodes(inputImage); // Perform barcode scanning
-          frameCounter = 0; // Reset the counter after scanning
-        }
-        // Notify the original listener if needed
-        listener.onImageAvailable(image);
-        if (autoClose) image.close();
-      }
-    }, backgroundHandler);
-
-    if (wasRunning) {
-      if (textureView != null) {
-        prepareCamera(textureView, surfaceEncoder, fps);
-      } else if (surfaceView != null) {
-        prepareCamera(surfaceView, surfaceEncoder, fps);
-      } else {
-        prepareCamera(surfaceEncoder, fps);
-      }
-      openLastCamera();
-    }
-  }
-
-  public void removeImageListener() {
-    boolean wasRunning = running;
-    if (wasRunning) closeCamera(false);
-    if (imageReader != null) {
-      imageReader.close();
-      imageReader = null;
-    }
-    if (wasRunning) {
-      if (textureView != null) {
-        prepareCamera(textureView, surfaceEncoder, fps);
-      } else if (surfaceView != null) {
-        prepareCamera(surfaceView, surfaceEncoder, fps);
-      } else {
-        prepareCamera(surfaceEncoder, fps);
-      }
-      openLastCamera();
-    }
-  }
 
   @Override
   public void onOpened(@NonNull CameraDevice cameraDevice) {

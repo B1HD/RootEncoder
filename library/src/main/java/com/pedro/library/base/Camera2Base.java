@@ -215,6 +215,10 @@ public abstract class Camera2Base {
     return cameraManager.enableFaceDetection(faceDetectorCallback);
   }
 
+  public boolean scanBarcodes(Camera2ApiManager.BarcodeDetectorCallback barcodeDetectorCallback) {
+    return cameraManager.enableBarcodeScanning(barcodeDetectorCallback);
+  }
+
   public void disableFaceDetection() {
     cameraManager.disableFaceDetection();
   }
