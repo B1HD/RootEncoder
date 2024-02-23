@@ -136,6 +136,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
     this.barcodeDetectorCallback = callback;
     barcodeDetectionEnabled = true;
+    reOpenCamera(cameraId);
     // You may need to start or restart the camera capture session if necessary
     return true;
   }
@@ -182,6 +183,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = reader.acquireLatestImage();
       if (image != null) {
+        Log.d(TAG, "addImageListener: Input image detected.");
         InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(surfaceView.getContext()));
         scanBarcodes(inputImage);
         listener.onImageAvailable(image);
