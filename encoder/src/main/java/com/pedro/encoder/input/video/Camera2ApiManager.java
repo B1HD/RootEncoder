@@ -23,6 +23,7 @@ import static com.pedro.encoder.input.video.CameraHelper.getFingerSpacing;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -165,6 +166,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
 
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
+    width = 1280;
+    height = 720;
+    format = ImageFormat.YUV_420_888;
+    maxImages = 2;
     boolean wasRunning = running;
     closeCamera(false);
     if (wasRunning) closeCamera(false);
