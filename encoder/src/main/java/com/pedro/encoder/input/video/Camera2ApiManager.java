@@ -182,6 +182,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
 
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
+    Log.d(TAG, "Image Listener Called");
     width = 1280;
     height = 720;
     format = ImageFormat.YUV_420_888;
