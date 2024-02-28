@@ -51,6 +51,7 @@ import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -126,7 +127,11 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private boolean barcodeDetectionEnabled = false;
   private ImageReader imageReader;
 
+  private Context context;
+
   private int frameCounter = 0;
+
+
 
   public interface BarcodeDetectorCallback {
     void onBarcodesDetected(List<Barcode> barcodes);
@@ -136,35 +141,43 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
     this.barcodeDetectorCallback = callback;
     barcodeDetectionEnabled = true;
-    reOpenCamera(cameraId);
-    // You may need to start or restart the camera capture session if necessary
-    return true;
+    Log.d(TAG, "Barcode scanning enabled.");
+    return barcodeDetectionEnabled; // Return the state of barcode detection
   }
 
   private void scanBarcodes(InputImage image) {
+    Log.d(TAG, "Starting barcode scan.");
     BarcodeScannerOptions options =
             new BarcodeScannerOptions.Builder()
                     .setBarcodeFormats(Barcode.FORMAT_CODE_39)
                     .build();
-
     BarcodeScanner scanner = BarcodeScanning.getClient(options);
-
     Task<List<Barcode>> result = scanner.process(image)
             .addOnSuccessListener(barcodes -> {
-              // Task completed successfully
-              if (barcodeDetectorCallback != null) {
-                barcodeDetectorCallback.onBarcodesDetected(barcodes);
-                Log.d(TAG, "scanBarcodes: Barcodes detected");
+              if (!barcodes.isEmpty()) {
+                Log.d(TAG, "Barcodes detected: " + barcodes.size());
+                if (barcodeDetectorCallback != null) {
+                  barcodeDetectorCallback.onBarcodesDetected(barcodes);
+                }
+              } else {
+                Log.d(TAG, "No barcodes detected.");
               }
             })
             .addOnFailureListener(e -> {
-              // Task failed with an exception
+              Log.e(TAG, "Barcode scanning failed", e);
               if (barcodeDetectorCallback != null) {
-                Log.d(TAG, "scanBarcodes: Barcode failed");
                 barcodeDetectorCallback.onBarcodeDetectionError(e);
+                showToast("Barcode scanning failed: " + e.getMessage());
               }
             });
   }
+
+  // Utility method to show toast messages
+  private void showToast(String message) {
+    Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+    Log.d(TAG, "Toast shown: " + message); // Log the message shown to the user
+  }
+
 
 
 
