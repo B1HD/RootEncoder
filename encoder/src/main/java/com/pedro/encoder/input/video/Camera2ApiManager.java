@@ -194,6 +194,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
     imageThread.start();
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
+    Log.d(TAG, "addImageListener: " + imageReader);
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = reader.acquireLatestImage();
       Log.d(TAG, "addImageListener: image" + image);
@@ -217,8 +218,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         Log.d(TAG, "addImageListener: else statement, surfaceEncoder.");
         prepareCamera(surfaceEncoder, fps);
       }
+
       openLastCamera();
     }
+    Log.d(TAG, "addImageListener: wasn't running");
   }
 
   public void removeImageListener() {
