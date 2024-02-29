@@ -196,6 +196,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = reader.acquireLatestImage();
+      Log.d(TAG, "addImageListener: image" + image);
       if (image != null) {
         Log.d(TAG, "addImageListener: Input image detected.");
         InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(surfaceView.getContext()));
@@ -204,12 +205,16 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         if (autoClose) image.close();
       }
     }, new Handler(imageThread.getLooper()));
+    Log.d(TAG, "addImageListener: Outside InputImage adding.");
     if (wasRunning) {
       if (textureView != null) {
+        Log.d(TAG, "addImageListener: Inside texture View.");
         prepareCamera(textureView, surfaceEncoder, fps);
       } else if (surfaceView != null) {
+        Log.d(TAG, "addImageListener: surfaceView detected.");
         prepareCamera(surfaceView, surfaceEncoder, fps);
       } else {
+        Log.d(TAG, "addImageListener: else statement, surfaceEncoder.");
         prepareCamera(surfaceEncoder, fps);
       }
       openLastCamera();
