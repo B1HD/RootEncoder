@@ -183,9 +183,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
     Log.d(TAG, "Image Listener Called");
-    width = 1280;
-    height = 720;
-    format = ImageFormat.YUV_420_888;
+
     maxImages = 2;
     boolean wasRunning = running;
     closeCamera(false);
@@ -324,6 +322,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
           Camera2ApiManager.this.cameraCaptureSession = cameraCaptureSession;
           try {
+            Log.d(TAG, "Camera Capture Session Information" + cameraCaptureSession);
+            Log.d(TAG, "listSurfaces information" + listSurfaces);
             CaptureRequest captureRequest = drawSurface(listSurfaces);
             if (captureRequest != null) {
               cameraCaptureSession.setRepeatingRequest(captureRequest,
