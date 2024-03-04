@@ -202,23 +202,32 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     Log.d(TAG, "addImageListener: " + imageReader);
 
     imageReader.setOnImageAvailableListener(reader -> {
-      Image image = reader.acquireLatestImage();
-      if (image != null) {
-        frameCounter++; // Increment the frame counter
-        if (frameCounter >= 10) { // Check if it's the 10th frame
-          Log.d(TAG, "Processing every 10th frame for barcode detection.");
-          InputImage inputImage = InputImage.fromMediaImage(image, 0);
-          if (barcodeDetectionEnabled) { // Check if barcode scanning is enabled
-            // Move barcode scanning to its own method to handle image closure properly
-            scanBarcodes(inputImage, image, autoClose); // Modified to include image closing
+      Image image = null;
+      try {
+        image = reader.acquireLatestImage();
+        if (image != null) {
+          frameCounter++;
+          if (frameCounter >= 10) {
+            Log.d(TAG, "Processing every 10th frame for barcode detection.");
+            InputImage inputImage = InputImage.fromMediaImage(image, 0);
+            if (barcodeDetectionEnabled) {
+              scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
+              // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
+            }
+            listener.onImageAvailable(image);
+            frameCounter = 0;
+          } else {
+            Log.d(TAG, "Skipping frame: " + frameCounter);
+            // Image must be closed even if skipped
+            if (autoClose) {
+              image.close();
+            }
           }
-          listener.onImageAvailable(image); // Invoke callback
-          frameCounter = 0; // Reset the frame counter
-        } else {
-          Log.d(TAG, "Skipping frame: " + frameCounter);
-          if (autoClose) {
-            image.close(); // Close the image if not processing
-          }
+        }
+      } catch (Exception e) {
+        Log.e(TAG, "Error processing image for barcode detection", e);
+        if (image != null) {
+          image.close(); // Ensure image is closed in case of an error
         }
       }
     }, new Handler(imageThread.getLooper()));
