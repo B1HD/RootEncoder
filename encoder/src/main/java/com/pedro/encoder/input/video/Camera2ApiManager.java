@@ -222,9 +222,20 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         }
       }
     }, new Handler(imageThread.getLooper()));
-
+    Log.d(TAG, "addImageListener: Outside InputImage adding.");
     if (wasRunning) {
-      // Reinitialization of the camera if it was running before
+      if (textureView != null) {
+        Log.d(TAG, "addImageListener: Inside texture View.");
+        prepareCamera(textureView, surfaceEncoder, fps);
+      } else if (surfaceView != null) {
+        Log.d(TAG, "addImageListener: surfaceView detected.");
+        prepareCamera(surfaceView, surfaceEncoder, fps);
+      } else {
+        Log.d(TAG, "addImageListener: else statement, surfaceEncoder.");
+        prepareCamera(surfaceEncoder, fps);
+      }
+
+      openLastCamera();
     }
     Log.d(TAG, "addImageListener: wasn't running");
   }
