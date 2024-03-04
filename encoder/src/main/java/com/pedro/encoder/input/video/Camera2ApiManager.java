@@ -198,7 +198,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
       Log.d(TAG, "addImageListener: image" + image);
       if (image != null) {
         Log.d(TAG, "addImageListener: Input image detected.");
-        InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(surfaceView.getContext()));
+        InputImage inputImage = InputImage.fromMediaImage(image, 0);
         scanBarcodes(inputImage);
         listener.onImageAvailable(image);
         if (autoClose) image.close();

@@ -140,7 +140,7 @@ public class OpenGlView extends OpenGlViewBase {
 
   @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-    Log.i(TAG, "size: " + width + "x" + height);
+    Log.i("Camera2ApiManager", "size: " + width + "x" + height);
     this.previewWidth = width;
     this.previewHeight = height;
     if (managerRender != null) managerRender.setPreviewSize(previewWidth, previewHeight);
