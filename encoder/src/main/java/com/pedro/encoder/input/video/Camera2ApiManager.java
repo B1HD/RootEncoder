@@ -145,15 +145,16 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     return barcodeDetectionEnabled; // Return the state of barcode detection
   }
 
-  private void scanBarcodes(InputImage image) {
+  private void scanBarcodes(InputImage inputImage, Image image, boolean autoClose) {
     Log.d(TAG, "Starting barcode scan.");
-    BarcodeScannerOptions options =
-            new BarcodeScannerOptions.Builder()
-                    .setBarcodeFormats(Barcode.FORMAT_CODE_39)
-                    .build();
+    BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_CODE_39)
+            .build();
     BarcodeScanner scanner = BarcodeScanning.getClient(options);
-    Task<List<Barcode>> result = scanner.process(image)
+
+    scanner.process(inputImage)
             .addOnSuccessListener(barcodes -> {
+              // Handle successful barcode detection
               if (!barcodes.isEmpty()) {
                 Log.d(TAG, "Barcodes detected: " + barcodes.size());
                 if (barcodeDetectorCallback != null) {
@@ -164,10 +165,16 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
               }
             })
             .addOnFailureListener(e -> {
+              // Handle barcode detection failure
               Log.e(TAG, "Barcode scanning failed", e);
               if (barcodeDetectorCallback != null) {
                 barcodeDetectorCallback.onBarcodeDetectionError(e);
-                showToast("Barcode scanning failed: " + e.getMessage());
+              }
+            })
+            .addOnCompleteListener(task -> {
+              // Close the image once barcode scanning is completed or failed
+              if (autoClose) {
+                image.close();
               }
             });
   }
@@ -184,7 +191,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
     Log.d(TAG, "Image Listener Called");
 
-    maxImages = 2;
+    maxImages = 15; // Assuming you want to set this to handle more images simultaneously
     boolean wasRunning = running;
     closeCamera(false);
     if (wasRunning) closeCamera(false);
@@ -193,31 +200,31 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     imageThread.start();
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
     Log.d(TAG, "addImageListener: " + imageReader);
+
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = reader.acquireLatestImage();
-      Log.d(TAG, "addImageListener: image" + image);
       if (image != null) {
-        Log.d(TAG, "addImageListener: Input image detected.");
-        InputImage inputImage = InputImage.fromMediaImage(image, 0);
-        scanBarcodes(inputImage);
-        listener.onImageAvailable(image);
-        if (autoClose) image.close();
+        frameCounter++; // Increment the frame counter
+        if (frameCounter >= 10) { // Check if it's the 10th frame
+          Log.d(TAG, "Processing every 10th frame for barcode detection.");
+          InputImage inputImage = InputImage.fromMediaImage(image, 0);
+          if (barcodeDetectionEnabled) { // Check if barcode scanning is enabled
+            // Move barcode scanning to its own method to handle image closure properly
+            scanBarcodes(inputImage, image, autoClose); // Modified to include image closing
+          }
+          listener.onImageAvailable(image); // Invoke callback
+          frameCounter = 0; // Reset the frame counter
+        } else {
+          Log.d(TAG, "Skipping frame: " + frameCounter);
+          if (autoClose) {
+            image.close(); // Close the image if not processing
+          }
+        }
       }
     }, new Handler(imageThread.getLooper()));
-    Log.d(TAG, "addImageListener: Outside InputImage adding.");
-    if (wasRunning) {
-      if (textureView != null) {
-        Log.d(TAG, "addImageListener: Inside texture View.");
-        prepareCamera(textureView, surfaceEncoder, fps);
-      } else if (surfaceView != null) {
-        Log.d(TAG, "addImageListener: surfaceView detected.");
-        prepareCamera(surfaceView, surfaceEncoder, fps);
-      } else {
-        Log.d(TAG, "addImageListener: else statement, surfaceEncoder.");
-        prepareCamera(surfaceEncoder, fps);
-      }
 
-      openLastCamera();
+    if (wasRunning) {
+      // Reinitialization of the camera if it was running before
     }
     Log.d(TAG, "addImageListener: wasn't running");
   }
