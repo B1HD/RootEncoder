@@ -203,6 +203,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     imageThread.start();
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
     Log.d(TAG, "addImageListener: " + imageReader);
+    Log.d(TAG, "Camera Orientation" + getCameraOrientation(this.context));
 
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = null;
@@ -212,7 +213,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
           frameCounter++;
           if (frameCounter >= framesPerScan) {
             //Log.d(TAG, "Processing every 10th frame for barcode detection.");
-            Log.d(TAG, "Camera Orientation" + CameraHelper.getCameraOrientation(this.context));
+            Log.d(TAG, "Camera Orientation with this" + CameraHelper.getCameraOrientation(this.context));
+            Log.d(TAG, "Camera Orientation" + CameraHelper.getCameraOrientation(context));
             InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(this.context));
             if (barcodeDetectionEnabled) {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
