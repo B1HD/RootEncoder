@@ -217,7 +217,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
               // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
             }
-            //listener.onImageAvailable(image);
+            listener.onImageAvailable(image);
             frameCounter = 0;
           } else {
             //Log.d(TAG, "Skipping frame: " + frameCounter);
