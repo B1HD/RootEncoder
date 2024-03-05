@@ -995,19 +995,19 @@ public abstract class Camera2Base {
     return recordController.getStatus();
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener) {
-    cameraManager.addImageListener(width, height, format, maxImages, true, listener);
+  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
+    cameraManager.addImageListener(width, height, format, maxImages, true, listener, framesPerScan);
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener) {
-    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener);
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
+    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan);
   }
 
-  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener) {
+  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
     if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270) {
-      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener);
+      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener, framesPerScan);
     } else {
-      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener);
+      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener, framesPerScan);
     }
   }
 
