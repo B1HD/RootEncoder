@@ -151,7 +151,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
     Log.d(TAG, "Starting barcode scan.");
     BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_CODE_39)
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
             .build();
     BarcodeScanner scanner = BarcodeScanning.getClient(options);
 
