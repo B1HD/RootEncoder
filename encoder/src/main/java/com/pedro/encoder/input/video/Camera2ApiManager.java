@@ -131,6 +131,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   private int frameCounter = 0;
 
+  private boolean autoClose = true;
+
 
 
   public interface BarcodeDetectorCallback {
@@ -146,6 +148,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   }
 
   private void scanBarcodes(InputImage inputImage, Image image, boolean autoClose) {
+
     Log.d(TAG, "Starting barcode scan.");
     BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_CODE_39)
@@ -214,10 +217,10 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
               // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
             }
-            listener.onImageAvailable(image);
+            //listener.onImageAvailable(image);
             frameCounter = 0;
           } else {
-            Log.d(TAG, "Skipping frame: " + frameCounter);
+            //Log.d(TAG, "Skipping frame: " + frameCounter);
             // Image must be closed even if skipped
             if (autoClose) {
               image.close();
