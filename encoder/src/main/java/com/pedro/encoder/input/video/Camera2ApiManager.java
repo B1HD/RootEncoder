@@ -58,6 +58,7 @@ import androidx.annotation.RequiresApi;
 import com.pedro.encoder.input.video.facedetector.FaceDetectorCallback;
 import com.pedro.encoder.input.video.facedetector.UtilsKt;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -209,22 +210,21 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         if (image != null) {
           frameCounter++;
           if (frameCounter >= framesPerScan) {
+            byte[] nv21 = YUV_420_888_to_NV21(image); // Convert the YUV_420_888 image to NV21
 
+            // Create InputImage from NV21 byte array
+            InputImage inputImage = InputImage.fromByteArray(nv21,
+                    image.getWidth(), image.getHeight(),
+                    rotation, InputImage.IMAGE_FORMAT_NV21);
 
-            //Log.d(TAG, "Processing every 10th frame for barcode detection.");
-
-            InputImage inputImage = InputImage.fromMediaImage(image, rotation);
             if (barcodeDetectionEnabled) {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
-              // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
             }
-            listener.onImageAvailable(image);
+            listener.onImageAvailable(image); // Notify listener with the original Image object
             frameCounter = 0;
           } else {
-            //Log.d(TAG, "Skipping frame: " + frameCounter);
-            // Image must be closed even if skipped
             if (autoClose) {
-              image.close();
+              image.close(); // Close image if it's skipped and autoClose is true
             }
           }
         }
@@ -251,6 +251,41 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
       openLastCamera();
     }
     Log.d(TAG, "addImageListener: wasn't running");
+  }
+
+  private byte[] YUV_420_888_to_NV21(Image image) {
+    Image.Plane[] planes = image.getPlanes();
+    int imageWidth = image.getWidth();
+    int imageHeight = image.getHeight();
+    int ySize = imageWidth * imageHeight;
+    int uvSize = imageWidth * imageHeight / 4;
+
+    byte[] nv21 = new byte[ySize + uvSize * 2];
+    ByteBuffer yBuffer = planes[0].getBuffer();
+    ByteBuffer uBuffer = planes[1].getBuffer();
+    ByteBuffer vBuffer = planes[2].getBuffer();
+
+    int rowStride = planes[1].getRowStride();
+    assert(planes[2].getRowStride() == rowStride);
+
+    int pixelStride = planes[1].getPixelStride();
+    assert(planes[2].getPixelStride() == pixelStride);
+
+    // Y channel
+    yBuffer.get(nv21, 0, ySize);
+
+    // U and V channels (interleaved)
+    for (int row = 0; row < imageHeight / 2; row++) {
+      int yPos = rowStride * row;
+      for (int col = 0; col < imageWidth / 2; col++) {
+        int uvPos = col * pixelStride;
+        // NV21 uses VU order
+        nv21[ySize + 2 * row * imageWidth / 2 + 2 * col] = vBuffer.get(yPos + uvPos);
+        nv21[ySize + 2 * row * imageWidth / 2 + 2 * col + 1] = uBuffer.get(yPos + uvPos);
+      }
+    }
+
+    return nv21;
   }
 
   public void removeImageListener() {
