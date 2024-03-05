@@ -18,12 +18,10 @@ package com.pedro.encoder.input.video;
 
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_FRONT;
 import static com.pedro.encoder.input.video.CameraHelper.Facing;
-import static com.pedro.encoder.input.video.CameraHelper.getCameraOrientation;
 import static com.pedro.encoder.input.video.CameraHelper.getFingerSpacing;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.ImageFormat;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -57,7 +55,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
-import com.google.android.gms.tasks.Task;
 import com.pedro.encoder.input.video.facedetector.FaceDetectorCallback;
 import com.pedro.encoder.input.video.facedetector.UtilsKt;
 
@@ -191,7 +188,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
 
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan) {
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan, int rotation) {
     Log.d(TAG, "Image Listener Called");
 
     //maxImages = 15; // Assuming you want to set this to handle more images simultaneously
@@ -203,7 +200,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     imageThread.start();
     imageReader = ImageReader.newInstance(width, height, format, maxImages);
     Log.d(TAG, "addImageListener: " + imageReader);
-    Log.d(TAG, "Camera Orientation" + getCameraOrientation(this.context));
+
 
     imageReader.setOnImageAvailableListener(reader -> {
       Image image = null;
@@ -212,10 +209,11 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         if (image != null) {
           frameCounter++;
           if (frameCounter >= framesPerScan) {
+
+
             //Log.d(TAG, "Processing every 10th frame for barcode detection.");
-            Log.d(TAG, "Camera Orientation with this" + CameraHelper.getCameraOrientation(this.context));
-            Log.d(TAG, "Camera Orientation" + CameraHelper.getCameraOrientation(context));
-            InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(this.context));
+
+            InputImage inputImage = InputImage.fromMediaImage(image, rotation);
             if (barcodeDetectionEnabled) {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
               // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it

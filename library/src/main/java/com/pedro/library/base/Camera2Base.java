@@ -995,19 +995,19 @@ public abstract class Camera2Base {
     return recordController.getStatus();
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
-    cameraManager.addImageListener(width, height, format, maxImages, true, listener, framesPerScan);
+  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
+    cameraManager.addImageListener(width, height, format, maxImages, true, listener, framesPerScan, rotation);
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
-    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan);
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
+    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, rotation );
   }
 
-  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan) {
+  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
     if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270) {
-      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener, framesPerScan);
+      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener, framesPerScan, rotation);
     } else {
-      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener, framesPerScan);
+      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener, framesPerScan, rotation);
     }
   }
 
