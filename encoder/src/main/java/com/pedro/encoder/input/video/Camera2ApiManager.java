@@ -211,8 +211,9 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         if (image != null) {
           frameCounter++;
           if (frameCounter >= framesPerScan) {
-            Log.d(TAG, "Processing every 10th frame for barcode detection.");
-            InputImage inputImage = InputImage.fromMediaImage(image, 0);
+            //Log.d(TAG, "Processing every 10th frame for barcode detection.");
+            Log.d(TAG, "Camera Orientation" + CameraHelper.getCameraOrientation(this.context));
+            InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(this.context));
             if (barcodeDetectionEnabled) {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
               // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
