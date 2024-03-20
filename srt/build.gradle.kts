@@ -16,7 +16,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 16
+        minSdk = 19
         lint.targetSdk = 34
     }
     buildTypes {
