@@ -170,6 +170,12 @@ public class OpenGlView extends SurfaceView
   public void setIsStreamHorizontalFlip(boolean flip) {
     isStreamHorizontalFlip = flip;
   }
+  public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    Log.i("Camera2ApiManager", "size: " + width + "x" + height);
+    this.previewWidth = width;
+    this.previewHeight = height;
+    if (managerRender != null) managerRender.setPreviewSize(previewWidth, previewHeight);
+  }
 
   @Override
   public void setIsStreamVerticalFlip(boolean flip) {

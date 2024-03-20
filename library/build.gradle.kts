@@ -54,6 +54,7 @@ afterEvaluate {
 
 dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
+  implementation ("com.google.mlkit:barcode-scanning:17.2.0")
   api(project(":encoder"))
   api(project(":rtmp"))
   api(project(":rtsp"))

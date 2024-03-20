@@ -14,7 +14,7 @@ android {
   compileSdk = 34
 
   defaultConfig {
-    minSdk = 16
+    minSdk = 19
     lint.targetSdk = 34
   }
   buildTypes {
@@ -53,6 +53,7 @@ afterEvaluate {
 }
 
 dependencies {
+  implementation ("com.google.mlkit:barcode-scanning:17.2.0")
   testImplementation("junit:junit:$junitVersion")
   api("androidx.annotation:annotation:1.7.1")
   api(project(":common"))

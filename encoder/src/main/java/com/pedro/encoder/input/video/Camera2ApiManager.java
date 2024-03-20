@@ -48,6 +48,8 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
+import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -56,14 +58,21 @@ import androidx.annotation.RequiresApi;
 import com.pedro.encoder.input.video.facedetector.FaceDetectorCallback;
 import com.pedro.encoder.input.video.facedetector.UtilsKt;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
+
+import com.google.mlkit.vision.common.InputImage;
 
 /**
- * Created by pedro on 4/03/17.
+ * Created by pedro on 4/03/k17.
  *
  * <p>
  * Class for use surfaceEncoder to buffer encoder.
@@ -101,6 +110,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private int fps = 30;
   private final Semaphore semaphore = new Semaphore(0);
   private CameraCallbacks cameraCallbacks;
+  
 
   public interface ImageCallback {
     void onImageAvailable(Image image);
@@ -111,7 +121,213 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   private FaceDetectorCallback faceDetectorCallback;
   private boolean faceDetectionEnabled = false;
   private int faceDetectionMode;
+  private BarcodeDetectorCallback barcodeDetectorCallback;
+  private boolean barcodeDetectionEnabled = false;
   private ImageReader imageReader;
+
+  private Context context;
+
+  private int frameCounter = 0;
+
+  private boolean autoClose = true;
+
+
+
+  public interface BarcodeDetectorCallback {
+    void onBarcodesDetected(List<Barcode> barcodes);
+    void onBarcodeDetectionError(Exception e);
+  }
+
+  public boolean enableBarcodeScanning(BarcodeDetectorCallback callback) {
+    this.barcodeDetectorCallback = callback;
+    barcodeDetectionEnabled = true;
+    Log.d(TAG, "Barcode scanning enabled.");
+    return barcodeDetectionEnabled; // Return the state of barcode detection
+  }
+
+  private void scanBarcodes(InputImage inputImage, Image image, boolean autoClose) {
+
+    Log.d(TAG, "Starting barcode scan.");
+    BarcodeScannerOptions options = new BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+            .build();
+    BarcodeScanner scanner = BarcodeScanning.getClient(options);
+
+    scanner.process(inputImage)
+            .addOnSuccessListener(barcodes -> {
+              // Handle successful barcode detection
+              if (!barcodes.isEmpty()) {
+                Log.d(TAG, "Barcodes detected: " + barcodes.size());
+                if (barcodeDetectorCallback != null) {
+                  barcodeDetectorCallback.onBarcodesDetected(barcodes);
+                }
+              } else {
+                Log.d(TAG, "No barcodes detected.");
+              }
+            })
+            .addOnFailureListener(e -> {
+              // Handle barcode detection failure
+              Log.e(TAG, "Barcode scanning failed", e);
+              if (barcodeDetectorCallback != null) {
+                barcodeDetectorCallback.onBarcodeDetectionError(e);
+              }
+            })
+            .addOnCompleteListener(task -> {
+              // Close the image once barcode scanning is completed or failed
+              if (autoClose) {
+                image.close();
+              }
+            });
+  }
+
+  // Utility method to show toast messages
+  private void showToast(String message) {
+    Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+    Log.d(TAG, "Toast shown: " + message); // Log the message shown to the user
+  }
+
+
+
+
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan, int rotation) {
+    Log.d(TAG, "Image Listener Called");
+
+    //maxImages = 15; // Assuming you want to set this to handle more images simultaneously
+    boolean wasRunning = running;
+    closeCamera(false);
+    if (wasRunning) closeCamera(false);
+    if (imageReader != null) removeImageListener();
+    HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
+    imageThread.start();
+    imageReader = ImageReader.newInstance(width, height, format, maxImages);
+    Log.d(TAG, "addImageListener: " + imageReader);
+
+
+    imageReader.setOnImageAvailableListener(reader -> {
+      Image image = null;
+      try {
+        image = reader.acquireLatestImage();
+        if (image != null) {
+          frameCounter++;
+          if (frameCounter >= framesPerScan) {
+            byte[] nv21 = YUV_420_888_to_NV21(image); // Convert the YUV_420_888 image to NV21
+
+            // Create InputImage from NV21 byte array
+            InputImage inputImage = InputImage.fromByteArray(nv21,
+                    image.getWidth(), image.getHeight(),
+                    rotation, InputImage.IMAGE_FORMAT_NV21);
+
+            if (barcodeDetectionEnabled) {
+              scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
+            }
+            listener.onImageAvailable(image); // Notify listener with the original Image object
+            frameCounter = 0;
+          } else {
+            if (autoClose) {
+              image.close(); // Close image if it's skipped and autoClose is true
+            }
+          }
+        }
+      } catch (Exception e) {
+        Log.e(TAG, "Error processing image for barcode detection", e);
+        if (image != null) {
+          image.close(); // Ensure image is closed in case of an error
+        }
+      }
+    }, new Handler(imageThread.getLooper()));
+    Log.d(TAG, "addImageListener: Outside InputImage adding.");
+    if (wasRunning) {
+      if (textureView != null) {
+        Log.d(TAG, "addImageListener: Inside texture View.");
+        prepareCamera(textureView, surfaceEncoder, fps);
+      } else if (surfaceView != null) {
+        Log.d(TAG, "addImageListener: surfaceView detected.");
+        prepareCamera(surfaceView, surfaceEncoder, fps);
+      } else {
+        Log.d(TAG, "addImageListener: else statement, surfaceEncoder.");
+        prepareCamera(surfaceEncoder, fps);
+      }
+
+      openLastCamera();
+    }
+    Log.d(TAG, "addImageListener: wasn't running");
+  }
+
+  private byte[] YUV_420_888_to_NV21(Image image) {
+    Image.Plane[] planes = image.getPlanes();
+    int imageWidth = image.getWidth();
+    int imageHeight = image.getHeight();
+    int ySize = imageWidth * imageHeight;
+    int uvSize = imageWidth * imageHeight / 4;
+
+    byte[] nv21 = new byte[ySize + uvSize * 2];
+    ByteBuffer yBuffer = planes[0].getBuffer();
+    ByteBuffer uBuffer = planes[1].getBuffer();
+    ByteBuffer vBuffer = planes[2].getBuffer();
+
+    int rowStride = planes[1].getRowStride();
+    assert(planes[2].getRowStride() == rowStride);
+
+    int pixelStride = planes[1].getPixelStride();
+    assert(planes[2].getPixelStride() == pixelStride);
+
+    // Y channel
+    yBuffer.get(nv21, 0, ySize);
+
+    // U and V channels (interleaved)
+    for (int row = 0; row < imageHeight / 2; row++) {
+      int yPos = rowStride * row;
+      for (int col = 0; col < imageWidth / 2; col++) {
+        int uvPos = col * pixelStride;
+        // NV21 uses VU order
+        nv21[ySize + 2 * row * imageWidth / 2 + 2 * col] = vBuffer.get(yPos + uvPos);
+        nv21[ySize + 2 * row * imageWidth / 2 + 2 * col + 1] = uBuffer.get(yPos + uvPos);
+      }
+    }
+
+    return nv21;
+  }
+
+  public void removeImageListener() {
+    boolean wasRunning = running;
+    if (wasRunning) closeCamera(false);
+    if (imageReader != null) {
+      imageReader.close();
+      imageReader = null;
+    }
+    if (wasRunning) {
+      if (textureView != null) {
+        prepareCamera(textureView, surfaceEncoder, fps);
+      } else if (surfaceView != null) {
+        prepareCamera(surfaceView, surfaceEncoder, fps);
+      } else {
+        prepareCamera(surfaceEncoder, fps);
+      }
+      openLastCamera();
+    }
+  }
+
+
+
+  public static int getCameraOrientation(Context context) {
+    WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+    if (windowManager != null) {
+      int orientation = windowManager.getDefaultDisplay().getRotation();
+      return switch (orientation) {
+        case Surface.ROTATION_0 -> //portrait
+                90;
+        case Surface.ROTATION_90 -> //landscape
+                0;
+        case Surface.ROTATION_180 -> //reverse portrait
+                270;
+        case Surface.ROTATION_270 -> //reverse landscape
+                180;
+        default -> 0;
+      };
+    } else {
+      return 0;
+    }
+  }
 
   public Camera2ApiManager(Context context) {
     cameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
@@ -172,6 +388,8 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
         public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
           Camera2ApiManager.this.cameraCaptureSession = cameraCaptureSession;
           try {
+            Log.d(TAG, "Camera Capture Session Information" + cameraCaptureSession);
+            Log.d(TAG, "listSurfaces information" + listSurfaces);
             CaptureRequest captureRequest = drawSurface(listSurfaces);
             if (captureRequest != null) {
               cameraCaptureSession.setRepeatingRequest(captureRequest,
@@ -1000,6 +1218,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   public void closeCamera() {
     closeCamera(true);
+
   }
 
   public void closeCamera(boolean resetSurface) {
@@ -1024,51 +1243,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     running = false;
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener) {
-    boolean wasRunning = running;
-    closeCamera(false);
-    if (wasRunning) closeCamera(false);
-    if (imageReader != null) removeImageListener();
-    HandlerThread imageThread = new HandlerThread(TAG + " imageThread");
-    imageThread.start();
-    imageReader = ImageReader.newInstance(width, height, format, maxImages);
-    imageReader.setOnImageAvailableListener(reader -> {
-      Image image = reader.acquireLatestImage();
-      if (image != null) {
-        listener.onImageAvailable(image);
-        if (autoClose) image.close();
-      }
-    }, new Handler(imageThread.getLooper()));
-    if (wasRunning) {
-      if (textureView != null) {
-        prepareCamera(textureView, surfaceEncoder, fps);
-      } else if (surfaceView != null) {
-        prepareCamera(surfaceView, surfaceEncoder, fps);
-      } else {
-        prepareCamera(surfaceEncoder, fps);
-      }
-      openLastCamera();
-    }
-  }
 
-  public void removeImageListener() {
-    boolean wasRunning = running;
-    if (wasRunning) closeCamera(false);
-    if (imageReader != null) {
-      imageReader.close();
-      imageReader = null;
-    }
-    if (wasRunning) {
-      if (textureView != null) {
-        prepareCamera(textureView, surfaceEncoder, fps);
-      } else if (surfaceView != null) {
-        prepareCamera(surfaceView, surfaceEncoder, fps);
-      } else {
-        prepareCamera(surfaceEncoder, fps);
-      }
-      openLastCamera();
-    }
-  }
 
   @Override
   public void onOpened(@NonNull CameraDevice cameraDevice) {
