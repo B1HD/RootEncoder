@@ -84,6 +84,17 @@ class Camera2Source(context: Context): VideoSource() {
     }
   }
 
+  fun addImageListener(
+    width: Int, height: Int, format: Int, maxImages: Int, autoClose: Boolean,
+    listener: Camera2ApiManager.ImageCallback, framesPerScan: Int, rotation: Int
+  ) {
+    camera.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, rotation)
+  }
+
+  fun removeImageListener() {
+    camera.removeImageListener()
+  }
+
   fun switchCamera() {
     facing = if (facing == CameraHelper.Facing.BACK) {
       CameraHelper.Facing.FRONT
