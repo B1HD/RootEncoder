@@ -23,6 +23,7 @@ import android.os.Build
 import android.util.Range
 import android.util.Size
 import android.view.MotionEvent
+import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import com.pedro.encoder.input.video.Camera2ApiManager
 import com.pedro.encoder.input.video.CameraHelper
@@ -107,6 +108,11 @@ class Camera2Source(context: Context): VideoSource() {
         start(it)
       }
     }
+  }
+
+  @Nullable
+  fun getCameraCharacteristics(): CameraCharacteristics? {
+    return camera.getCameraCharacteristics()
   }
 
   fun getCameraFacing(): CameraHelper.Facing = facing
