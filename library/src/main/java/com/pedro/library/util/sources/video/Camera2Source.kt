@@ -23,6 +23,8 @@ import android.os.Build
 import android.util.Range
 import android.util.Size
 import android.view.MotionEvent
+import android.view.Surface
+import android.view.WindowManager
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import com.pedro.encoder.input.video.Camera2ApiManager
@@ -37,6 +39,7 @@ class Camera2Source(context: Context): VideoSource() {
 
   private val camera = Camera2ApiManager(context)
   private var facing = CameraHelper.Facing.BACK
+  private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
   override fun create(width: Int, height: Int, fps: Int, rotation: Int): Boolean {
     val result = checkResolutionSupported(width, height)
@@ -85,11 +88,33 @@ class Camera2Source(context: Context): VideoSource() {
     }
   }
 
+  fun calculateCorrectRotation(): Int {
+    val cameraCharacteristics = camera.cameraCharacteristics
+    val sensorOrientation = cameraCharacteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+    val rotation = windowManager.defaultDisplay.rotation
+    var degrees = 0
+    when (rotation) {
+      Surface.ROTATION_0 -> degrees = 0
+      Surface.ROTATION_90 -> degrees = 90
+      Surface.ROTATION_180 -> degrees = 180
+      Surface.ROTATION_270 -> degrees = 270
+    }
+
+    var result: Int
+    if (camera.cameraFacing == CameraHelper.Facing.FRONT) {
+      result = (sensorOrientation + degrees) % 360
+      result = (360 - result) % 360  // Compensate for the mirror effect
+    } else {  // Back-facing
+      result = (sensorOrientation - degrees + 360) % 360
+    }
+    return result
+  }
+
   fun addImageListener(
     width: Int, height: Int, format: Int, maxImages: Int, autoClose: Boolean,
-    listener: Camera2ApiManager.ImageCallback, framesPerScan: Int, rotation: Int
+    listener: Camera2ApiManager.ImageCallback, framesPerScan: Int, context: Context
   ) {
-    camera.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, rotation)
+    camera.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, context)
   }
 
   fun removeImageListener() {

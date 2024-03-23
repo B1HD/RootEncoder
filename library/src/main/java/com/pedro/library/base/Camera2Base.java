@@ -974,19 +974,19 @@ public abstract class Camera2Base {
     return recordController.getStatus();
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
-    cameraManager.addImageListener(width, height, format, maxImages, true, listener, framesPerScan, rotation);
+  public void addImageListener(int width, int height, int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, Context context) {
+    cameraManager.addImageListener(width, height, format, maxImages, true, listener, framesPerScan, context);
   }
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
-    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, rotation );
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, Camera2ApiManager.ImageCallback listener, int framesPerScan, Context context) {
+    cameraManager.addImageListener(width, height, format, maxImages, autoClose, listener, framesPerScan, context);
   }
 
-  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, int rotation) {
+  public void addImageListener(int format, int maxImages, Camera2ApiManager.ImageCallback listener, int framesPerScan, Context context) {
     if (videoEncoder.getRotation() == 90 || videoEncoder.getRotation() == 270) {
-      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener, framesPerScan, rotation);
+      addImageListener(videoEncoder.getHeight(), videoEncoder.getWidth(), format, maxImages, listener, framesPerScan, context);
     } else {
-      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener, framesPerScan, rotation);
+      addImageListener(videoEncoder.getWidth(), videoEncoder.getHeight(), format, maxImages, listener, framesPerScan, context);
     }
   }
 

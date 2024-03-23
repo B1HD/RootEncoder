@@ -189,7 +189,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
 
 
-  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan, int rotation) {
+  public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan, Context context) {
     Log.d(TAG, "Image Listener Called");
 
     //maxImages = 15; // Assuming you want to set this to handle more images simultaneously
@@ -213,7 +213,7 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
             //Log.d(TAG, "Processing every 10th frame for barcode detection.");
 
-            InputImage inputImage = InputImage.fromMediaImage(image, rotation);
+            InputImage inputImage = InputImage.fromMediaImage(image, getCameraOrientation(context));
             if (barcodeDetectionEnabled) {
               scanBarcodes(inputImage, image, autoClose); // Ensure this method properly closes the image
               // Do not close the image here if scanBarcodesAndCloseImage is responsible for closing it
