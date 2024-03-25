@@ -37,6 +37,8 @@ public class GifStreamObject extends StreamObjectBase {
   private int[] gifDelayFrames;
   private long startDelayFrame;
   private int currentGifFrame;
+  private boolean isPaused = false;
+  private int pauseFrameIndex = -1;
 
   public GifStreamObject() {
   }
@@ -96,18 +98,24 @@ public class GifStreamObject extends StreamObjectBase {
     return size <= 1 ? 0 : updateFrame();
   }
 
+  // Call this method with the frame index where you want the GIF to pause
+  public void pauseAtFrame(int frameIndex) {
+    isPaused = true;
+    pauseFrameIndex = frameIndex;
+  }
+
+  public void resumeGif() {
+    isPaused = false;
+    startDelayFrame = System.currentTimeMillis(); // Reset the timer
+  }
+
   @Override
   public int updateFrame() {
-    if (startDelayFrame == 0) {
+    if (!isPaused && System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
+      currentGifFrame = (currentGifFrame + 1) % numFrames;
       startDelayFrame = System.currentTimeMillis();
-    }
-    if (System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
-      if (currentGifFrame >= numFrames - 1) {
-        currentGifFrame = 0;
-      } else {
-        currentGifFrame++;
-      }
-      startDelayFrame = 0;
+    } else if (isPaused && pauseFrameIndex != -1) {
+      currentGifFrame = pauseFrameIndex;
     }
     return currentGifFrame;
   }
