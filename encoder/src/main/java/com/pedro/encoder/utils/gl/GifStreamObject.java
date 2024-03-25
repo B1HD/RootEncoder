@@ -41,6 +41,12 @@ public class GifStreamObject extends StreamObjectBase {
   private int pauseFrameIndex = -1;
   private OnFrameReachedListener frameReachedListener;
 
+  public interface OnFrameReachedListener {
+    void onFrameReached(int frameIndex);
+  }
+
+
+
   public void setFrameReachedListener(OnFrameReachedListener listener) {
     this.frameReachedListener = listener;
   }
@@ -48,9 +54,6 @@ public class GifStreamObject extends StreamObjectBase {
   public GifStreamObject() {
   }
 
-  public interface OnFrameReachedListener {
-    void onFrameReached(int frameIndex);
-  }
 
   @Override
   public int getWidth() {
@@ -118,20 +121,19 @@ public class GifStreamObject extends StreamObjectBase {
     startDelayFrame = System.currentTimeMillis(); // Reset the timer
   }
 
+
+
   @Override
   public int updateFrame() {
-    if (!isPaused) {
-      if (System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
-        if (currentGifFrame >= numFrames - 1) {
-          currentGifFrame = 0;
-        } else {
-          currentGifFrame++;
-        }
-        startDelayFrame = System.currentTimeMillis();
-        // Check if the listener is set and the current frame is the one to notify about
-        if (frameReachedListener != null && currentGifFrame == pauseFrameIndex) {
-          frameReachedListener.onFrameReached(currentGifFrame);
-        }
+    if (!isPaused && System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
+      if (currentGifFrame >= numFrames - 1) {
+        currentGifFrame = 0;
+      } else {
+        currentGifFrame++;
+      }
+      startDelayFrame = System.currentTimeMillis();
+      if(frameReachedListener != null) {
+        frameReachedListener.onFrameReached(currentGifFrame);
       }
     }
     return currentGifFrame;

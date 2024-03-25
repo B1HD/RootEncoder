@@ -66,7 +66,17 @@ public class GifObjectFilterRender extends BaseObjectFilterRender {
   }
 
   public void setGif(InputStream inputStream) throws IOException {
-    ((GifStreamObject) streamObject).load(inputStream);
+    GifStreamObject gifStreamObject = (GifStreamObject) streamObject;
+    gifStreamObject.load(inputStream);
+    gifStreamObject.setFrameReachedListener(new GifStreamObject.OnFrameReachedListener() {
+      @Override
+      public void onFrameReached(int frameIndex) {
+        if (frameIndex == 15) {
+          GifStreamObject gifStreamObject = (GifStreamObject) streamObject;
+          gifStreamObject.pauseAtFrame(frameIndex); // Assuming pauseAtFrame() is implemented in GifStreamObject
+        }
+      }
+    });
     shouldLoad = true;
   }
 }
