@@ -39,8 +39,17 @@ public class GifStreamObject extends StreamObjectBase {
   private int currentGifFrame;
   private boolean isPaused = false;
   private int pauseFrameIndex = -1;
+  private OnFrameReachedListener frameReachedListener;
+
+  public void setFrameReachedListener(OnFrameReachedListener listener) {
+    this.frameReachedListener = listener;
+  }
 
   public GifStreamObject() {
+  }
+
+  public interface OnFrameReachedListener {
+    void onFrameReached(int frameIndex);
   }
 
   @Override
@@ -111,11 +120,19 @@ public class GifStreamObject extends StreamObjectBase {
 
   @Override
   public int updateFrame() {
-    if (!isPaused && System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
-      currentGifFrame = (currentGifFrame + 1) % numFrames;
-      startDelayFrame = System.currentTimeMillis();
-    } else if (isPaused && pauseFrameIndex != -1) {
-      currentGifFrame = pauseFrameIndex;
+    if (!isPaused) {
+      if (System.currentTimeMillis() - startDelayFrame >= gifDelayFrames[currentGifFrame]) {
+        if (currentGifFrame >= numFrames - 1) {
+          currentGifFrame = 0;
+        } else {
+          currentGifFrame++;
+        }
+        startDelayFrame = System.currentTimeMillis();
+        // Check if the listener is set and the current frame is the one to notify about
+        if (frameReachedListener != null && currentGifFrame == pauseFrameIndex) {
+          frameReachedListener.onFrameReached(currentGifFrame);
+        }
+      }
     }
     return currentGifFrame;
   }

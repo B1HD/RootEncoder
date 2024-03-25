@@ -38,13 +38,22 @@ public class GifObjectFilterRender extends BaseObjectFilterRender {
     streamObject = new GifStreamObject();
   }
 
-  // Add methods to pause and resume the GIF animation
+  public void setGifFrameReachedListener(GifStreamObject.OnFrameReachedListener listener) {
+    if (streamObject instanceof GifStreamObject) {
+      ((GifStreamObject) streamObject).setFrameReachedListener(listener);
+    }
+  }
+
   public void pauseGifAtFrame(int frameIndex) {
-    ((GifStreamObject) streamObject).pauseAtFrame(frameIndex);
+    if (streamObject instanceof GifStreamObject) {
+      ((GifStreamObject) streamObject).pauseAtFrame(frameIndex);
+    }
   }
 
   public void resumeGif() {
-    ((GifStreamObject) streamObject).resumeGif();
+    if (streamObject instanceof GifStreamObject) {
+      ((GifStreamObject) streamObject).resumeGif();
+    }
   }
 
   @Override
