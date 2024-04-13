@@ -83,6 +83,9 @@ public class AndroidViewSprite {
         this.position.x = 100f - scale.x;
         this.position.y = 0f;
         break;
+      case TOP_RIGHT_MARGIN:
+        this.position.x = 100f - scale.x - 8;
+        this.position.y = 0f;
       case BOTTOM_LEFT:
         this.position.x = 0f;
         this.position.y = 100f - scale.y;
@@ -91,6 +94,9 @@ public class AndroidViewSprite {
         this.position.x = 100f - scale.x;
         this.position.y = 100f - scale.y;
         break;
+      case BOTTOM_RIGHT_MARGIN:
+        this.position.x = 100f - scale.x - 8f;
+        this.position.y = 100f - scale.y - 8f;
       default:
         break;
     }
