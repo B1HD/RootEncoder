@@ -131,7 +131,11 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   private boolean autoClose = true;
 
+  private CameraCloseListener cameraCloseListener;
 
+ public interface CameraCloseListener {
+   void onCameraClosed();
+ }
 
   public interface BarcodeDetectorCallback {
     void onBarcodesDetected(List<Barcode> barcodes);
@@ -187,7 +191,9 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
   }
 
 
-
+  public void setCameraCloseListener(CameraCloseListener listener) {
+    this.cameraCloseListener = listener;
+  }
 
   public void addImageListener(int width, int height, int format, int maxImages, boolean autoClose, ImageCallback listener, int framesPerScan, Context context) {
     Log.d(TAG, "Image Listener Called");
@@ -1185,7 +1191,6 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   public void closeCamera() {
     closeCamera(true);
-
   }
 
   public void closeCamera(boolean resetSurface) {
@@ -1208,6 +1213,9 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     }
     prepared = false;
     running = false;
+    if (cameraCloseListener != null) {
+      cameraCloseListener.onCameraClosed();
+    }
   }
 
 
