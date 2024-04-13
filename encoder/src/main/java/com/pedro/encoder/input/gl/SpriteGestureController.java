@@ -39,8 +39,13 @@ public class SpriteGestureController {
   private AndroidViewFilterRender androidViewFilterRender;
   private float lastDistance;
   private boolean preventMoveOutside = true;
+  private OnSpriteMovedListener spriteMovedListener;
 
   public SpriteGestureController() {
+  }
+
+  public interface OnSpriteMovedListener {
+    void onSpriteMoved(float newX, float newY);
   }
 
   public SpriteGestureController(BaseObjectFilterRender sprite) {
@@ -92,8 +97,17 @@ public class SpriteGestureController {
     return xTouched && yTouched;
   }
 
+  public void setOnSpriteMovedListener(OnSpriteMovedListener listener) {
+    this.spriteMovedListener = listener;
+  }
+
   public void moveSprite(View view, MotionEvent motionEvent) {
     if (baseObjectFilterRender == null && androidViewFilterRender == null) return;
+
+      if(baseObjectFilterRender !=null) {
+        PointF position = baseObjectFilterRender.getPosition();
+        spriteMovedListener.onSpriteMoved(position.x, position.y);
+      }
     if (motionEvent.getPointerCount() == 1) {
       float xPercent = motionEvent.getX() * 100 / view.getWidth();
       float yPercent = motionEvent.getY() * 100 / view.getHeight();
