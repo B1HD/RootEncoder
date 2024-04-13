@@ -17,6 +17,7 @@
 package com.pedro.encoder.input.gl;
 
 import android.graphics.PointF;
+import android.util.Log;
 import android.view.View;
 
 import com.pedro.encoder.utils.gl.TranslateTo;
@@ -97,6 +98,10 @@ public class AndroidViewSprite {
       case BOTTOM_RIGHT_MARGIN:
         this.position.x = 100f - scale.x - 8f;
         this.position.y = 100f - scale.y - 8f;
+        Log.d("Positioning", "translate: position.x " + this.position.x);
+        Log.d("Positioning", "translate: position.y " + this.position.y);
+        Log.d("Positioning", "translate: scale.x " + this.scale.x);
+        Log.d("Positioning", "translate: scale.y " + this.scale.y);
       default:
         break;
     }
