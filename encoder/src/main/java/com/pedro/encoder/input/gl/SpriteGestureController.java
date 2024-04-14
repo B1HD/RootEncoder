@@ -26,6 +26,7 @@ import androidx.annotation.RequiresApi;
 import com.pedro.encoder.input.gl.render.filters.AndroidViewFilterRender;
 import com.pedro.encoder.input.gl.render.filters.BaseFilterRender;
 import com.pedro.encoder.input.gl.render.filters.object.BaseObjectFilterRender;
+import com.pedro.encoder.input.gl.render.filters.object.GifObjectFilterRender;
 import com.pedro.encoder.input.video.CameraHelper;
 
 /**
@@ -102,12 +103,10 @@ public class SpriteGestureController {
   }
 
   public void moveSprite(View view, MotionEvent motionEvent) {
+
     if (baseObjectFilterRender == null && androidViewFilterRender == null) return;
 
-      if(baseObjectFilterRender !=null) {
-        PointF position = baseObjectFilterRender.getPosition();
-        spriteMovedListener.onSpriteMoved(position.x, position.y);
-      }
+
     if (motionEvent.getPointerCount() == 1) {
       float xPercent = motionEvent.getX() * 100 / view.getWidth();
       float yPercent = motionEvent.getY() * 100 / view.getHeight();
@@ -118,7 +117,7 @@ public class SpriteGestureController {
         scale = androidViewFilterRender.getScale();
       }
       if (preventMoveOutside) {
-        float x = xPercent - scale.x / 2.0F;
+         float x = xPercent - scale.x / 2.0F;
         float y = yPercent - scale.y / 2.0F;
         if (x < 0) {
           x = 0;
@@ -140,6 +139,12 @@ public class SpriteGestureController {
       } else {
         if (baseObjectFilterRender != null) {
           baseObjectFilterRender.setPosition(xPercent - scale.x / 2f, yPercent - scale.y / 2f);
+          if(baseObjectFilterRender instanceof GifObjectFilterRender)  {
+            if (spriteMovedListener != null) {
+              PointF position = baseObjectFilterRender.getPosition();
+              spriteMovedListener.onSpriteMoved(position.x, position.y);
+            }
+          }
         } else {
           androidViewFilterRender.setPosition(xPercent - scale.x / 2f, yPercent - scale.y / 2f);
         }
