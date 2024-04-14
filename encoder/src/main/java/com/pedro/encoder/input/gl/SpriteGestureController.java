@@ -41,35 +41,52 @@ public class SpriteGestureController {
   private float lastDistance;
   private boolean preventMoveOutside = true;
   private OnSpriteMovedListener spriteMovedListener;
+  private boolean invokeListener = false;
 
-  public SpriteGestureController() {
-  }
 
   public interface OnSpriteMovedListener {
     void onSpriteMoved(float newX, float newY);
   }
 
-  public SpriteGestureController(BaseObjectFilterRender sprite) {
-    this.baseObjectFilterRender = sprite;
+  public SpriteGestureController() {
   }
 
-  public SpriteGestureController(AndroidViewFilterRender sprite) {
-    this.androidViewFilterRender = sprite;
+  // Constructor with a filter that defaults to not invoking the listener
+  public SpriteGestureController(BaseObjectFilterRender baseObjectFilterRender) {
+    setBaseObjectFilterRender(baseObjectFilterRender, false);
+  }
+
+  public SpriteGestureController(AndroidViewFilterRender androidViewFilterRender) {
+    setBaseObjectFilterRender(androidViewFilterRender, false);
+  }
+
+  // Method to set the filter with a listener invocation flag
+  public void setBaseObjectFilterRender(BaseObjectFilterRender baseObjectFilterRender, boolean shouldInvokeListener) {
+    this.baseObjectFilterRender = baseObjectFilterRender;
+    this.androidViewFilterRender = null;
+    this.invokeListener = shouldInvokeListener;
+  }
+
+  // Overloaded method that defaults to not invoking the listener
+  public void setBaseObjectFilterRender(BaseObjectFilterRender baseObjectFilterRender) {
+    setBaseObjectFilterRender(baseObjectFilterRender, false);
+  }
+
+  public void setBaseObjectFilterRender(AndroidViewFilterRender androidViewFilterRender, boolean shouldInvokeListener) {
+    this.androidViewFilterRender = androidViewFilterRender;
+    this.baseObjectFilterRender = null;
+    this.invokeListener = shouldInvokeListener;
+  }
+
+  // Overloaded method that defaults to not invoking the listener
+  public void setBaseObjectFilterRender(AndroidViewFilterRender androidViewFilterRender) {
+    setBaseObjectFilterRender(androidViewFilterRender, false);
   }
 
   public BaseFilterRender getFilterRender() {
     return androidViewFilterRender == null ? baseObjectFilterRender : androidViewFilterRender;
   }
 
-  public void setBaseObjectFilterRender(BaseObjectFilterRender baseObjectFilterRender) {
-    this.baseObjectFilterRender = baseObjectFilterRender;
-    this.androidViewFilterRender = null;
-  }
-
-  public void setBaseObjectFilterRender(AndroidViewFilterRender androidViewFilterRender) {
-    this.androidViewFilterRender = androidViewFilterRender;
-    this.baseObjectFilterRender = null;
-  }
 
   public void stopListener() {
     this.androidViewFilterRender = null;
@@ -103,51 +120,26 @@ public class SpriteGestureController {
   }
 
   public void moveSprite(View view, MotionEvent motionEvent) {
-
     if (baseObjectFilterRender == null && androidViewFilterRender == null) return;
-
 
     if (motionEvent.getPointerCount() == 1) {
       float xPercent = motionEvent.getX() * 100 / view.getWidth();
       float yPercent = motionEvent.getY() * 100 / view.getHeight();
-      PointF scale;
-      if (baseObjectFilterRender != null) {
-        scale = baseObjectFilterRender.getScale();
-      } else {
-        scale = androidViewFilterRender.getScale();
-      }
+      float x = xPercent - baseObjectFilterRender.getScale().x / 2.0F;
+      float y = yPercent - baseObjectFilterRender.getScale().y / 2.0F;
+
       if (preventMoveOutside) {
-         float x = xPercent - scale.x / 2.0F;
-        float y = yPercent - scale.y / 2.0F;
-        if (x < 0) {
-          x = 0;
-        }
-        if (x + scale.x > 100.0F) {
-          x = 100.0F - scale.x;
-        }
-        if (y < 0) {
-          y = 0;
-        }
-        if (y + scale.y > 100.0F) {
-          y = 100.0F - scale.y;
-        }
-        if (baseObjectFilterRender != null) {
-          baseObjectFilterRender.setPosition(x, y);
-        } else {
-          androidViewFilterRender.setPosition(x, y);
-        }
-      } else {
-        if (baseObjectFilterRender != null) {
-          baseObjectFilterRender.setPosition(xPercent - scale.x / 2f, yPercent - scale.y / 2f);
-          if(baseObjectFilterRender instanceof GifObjectFilterRender)  {
-            if (spriteMovedListener != null) {
-              PointF position = baseObjectFilterRender.getPosition();
-              spriteMovedListener.onSpriteMoved(position.x, position.y);
-            }
-          }
-        } else {
-          androidViewFilterRender.setPosition(xPercent - scale.x / 2f, yPercent - scale.y / 2f);
-        }
+        x = Math.max(x, 0);
+        y = Math.max(y, 0);
+        x = Math.min(x, 100.0F - baseObjectFilterRender.getScale().x);
+        y = Math.min(y, 100.0F - baseObjectFilterRender.getScale().y);
+      }
+
+      baseObjectFilterRender.setPosition(x, y);
+
+      // Invoke the listener based on the flag set when the filter was assigned
+      if (invokeListener && spriteMovedListener != null) {
+        spriteMovedListener.onSpriteMoved(x, y);
       }
     }
   }
