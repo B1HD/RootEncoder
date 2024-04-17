@@ -121,8 +121,6 @@ class Camera2Source(context: Context): VideoSource() {
     camera.removeImageListener()
   }
 
-
-
   fun switchCamera() {
     facing = if (facing == CameraHelper.Facing.BACK) {
       CameraHelper.Facing.FRONT
@@ -195,12 +193,8 @@ class Camera2Source(context: Context): VideoSource() {
     if (isRunning()) camera.setZoom(event)
   }
 
-  fun setZoom(level: Float): Boolean {
-    return if (isRunning()) {
-      camera.setZoom(level)
-    } else {
-      false
-    }
+  fun setZoom(level: Float) {
+    if (isRunning()) camera.zoom = level
   }
 
   fun getZoomRange(): Range<Float> = camera.zoomRange
@@ -218,10 +212,6 @@ class Camera2Source(context: Context): VideoSource() {
   fun isFaceDetectionEnabled() = camera.isFaceDetectionEnabled
 
   fun camerasAvailable(): Array<String>? = camera.camerasAvailable
-
-  fun getMaxSupportedZoomRatio(): Float {
-    return camera.maxSupportedZoomRatio
-  }
 
   fun openCameraId(id: String) {
     if (isRunning()) stop()
