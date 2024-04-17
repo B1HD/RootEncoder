@@ -222,6 +222,11 @@ class Camera2Source(context: Context): VideoSource() {
     return if (isRunning()) camera.enableOpticalVideoStabilization() else false
   }
 
+  fun getOpticalZooms(): FloatArray? {
+    // Call the getOpticalZooms of the Camera2ApiManager
+    return camera.getOpticalZooms() // No need to convert, just return the array as it is
+  }
+
   fun disableOpticalVideoStabilization() {
     if (isRunning()) camera.disableOpticalVideoStabilization()
   }
