@@ -1113,12 +1113,20 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
 
   public float getMaxSupportedZoomRatio() {
     try {
-      CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
+      CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId != null ? cameraId : "0");
       Range<Float> zoomRange = null;
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
         zoomRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
       }
-      return zoomRange.getUpper();
+      if (zoomRange != null) {
+        return zoomRange.getUpper();
+      } else {
+        // This means that CONTROL_ZOOM_RATIO_RANGE is not available.
+        // Fallback to another way to determine max zoom or return a default value.
+        // For example, here's a fallback to SCALER_AVAILABLE_MAX_DIGITAL_ZOOM.
+        Float maxDigitalZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+        return maxDigitalZoom != null ? maxDigitalZoom : 1.0f; // Default to no zoom if not available
+      }
     } catch (CameraAccessException e) {
       Log.e(TAG, "Error accessing camera features", e);
       return 1.0f;  // Default to no zoom if unable to access camera features
