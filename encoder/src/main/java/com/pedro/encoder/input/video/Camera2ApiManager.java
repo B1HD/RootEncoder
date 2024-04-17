@@ -1111,37 +1111,69 @@ public class Camera2ApiManager extends CameraDevice.StateCallback {
     }
   }
 
-  public void setZoom(float level) {
+  public float getMaxSupportedZoomRatio() {
     try {
-      Range<Float> zoomRange = getZoomRange();
-      //Avoid out range level
-      if (level <= zoomRange.getLower()) level = zoomRange.getLower();
-      else if (level > zoomRange.getUpper()) level = zoomRange.getUpper();
+      CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
+      Range<Float> zoomRange = null;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        zoomRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+      }
+      return zoomRange.getUpper();
+    } catch (CameraAccessException e) {
+      Log.e(TAG, "Error accessing camera features", e);
+      return 1.0f;  // Default to no zoom if unable to access camera features
+    }
+  }
 
+  public boolean setZoom(float level) {
+    try {
       CameraCharacteristics characteristics = getCameraCharacteristics();
-      if (characteristics == null) return;
+      if (characteristics == null) {
+        Log.e(TAG, "Camera characteristics not available.");
+        return false;
+      }
+
+      Range<Float> zoomRange = null;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        zoomRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE);
+      }
+      if (zoomRange != null) {
+        // Clamp the level to ensure it's within the hardware capabilities
+        level = Math.max(zoomRange.getLower(), Math.min(level, zoomRange.getUpper()));
+      } else {
+        Log.e(TAG, "Zoom range not available, defaulting to no zoom.");
+        level = 1.0f;
+      }
 
       if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R &&
-          getLevelSupported() != CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+              getLevelSupported() != CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+        // Use new API for direct control of zoom ratio
         builderInputSurface.set(CaptureRequest.CONTROL_ZOOM_RATIO, level);
       } else {
+        // Fallback method using SCALER_CROP_REGION for devices not supporting CONTROL_ZOOM_RATIO
         Rect rect = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-        if (rect == null) return;
-        //This ratio is the ratio of cropped Rect to Camera's original(Maximum) Rect
+        if (rect == null) {
+          Log.e(TAG, "Active array size not available.");
+          return false;
+        }
+
         float ratio = 1f / level;
-        //croppedWidth and croppedHeight are the pixels cropped away, not pixels after cropped
-        int croppedWidth = rect.width() - Math.round((float) rect.width() * ratio);
-        int croppedHeight = rect.height() - Math.round((float) rect.height() * ratio);
-        //Finally, zoom represents the zoomed visible area
-        Rect zoom = new Rect(croppedWidth / 2, croppedHeight / 2, rect.width() - croppedWidth / 2,
-            rect.height() - croppedHeight / 2);
-        builderInputSurface.set(CaptureRequest.SCALER_CROP_REGION, zoom);
+        int croppedWidth = (int) (rect.width() * (1 - ratio));
+        int croppedHeight = (int) (rect.height() * (1 - ratio));
+        Rect zoomRect = new Rect(croppedWidth / 2, croppedHeight / 2,
+                rect.width() - croppedWidth / 2, rect.height() - croppedHeight / 2);
+
+        builderInputSurface.set(CaptureRequest.SCALER_CROP_REGION, zoomRect);
       }
-      cameraCaptureSession.setRepeatingRequest(builderInputSurface.build(),
-          faceDetectionEnabled ? cb : null, null);
-      zoomLevel = level;
+
+      // Apply the updated capture request
+      cameraCaptureSession.setRepeatingRequest(builderInputSurface.build(), null, cameraHandler);
+      zoomLevel = level; // Update the current zoom level
+      Log.d(TAG, "Zoom set to: " + level);
+      return true; // Zoom was successful
     } catch (CameraAccessException e) {
-      Log.e(TAG, "Error", e);
+      Log.e(TAG, "Failed to set camera zoom.", e);
+      return false; // Zoom failed
     }
   }
 

@@ -121,6 +121,8 @@ class Camera2Source(context: Context): VideoSource() {
     camera.removeImageListener()
   }
 
+
+
   fun switchCamera() {
     facing = if (facing == CameraHelper.Facing.BACK) {
       CameraHelper.Facing.FRONT
@@ -212,6 +214,10 @@ class Camera2Source(context: Context): VideoSource() {
   fun isFaceDetectionEnabled() = camera.isFaceDetectionEnabled
 
   fun camerasAvailable(): Array<String>? = camera.camerasAvailable
+
+  fun getMaxSupportedZoomRatio(): Float {
+    return camera.maxSupportedZoomRatio
+  }
 
   fun openCameraId(id: String) {
     if (isRunning()) stop()
