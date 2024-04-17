@@ -195,8 +195,12 @@ class Camera2Source(context: Context): VideoSource() {
     if (isRunning()) camera.setZoom(event)
   }
 
-  fun setZoom(level: Float) {
-    if (isRunning()) camera.zoom = level
+  fun setZoom(level: Float): Boolean {
+    return if (isRunning()) {
+      camera.setZoom(level)
+    } else {
+      false
+    }
   }
 
   fun getZoomRange(): Range<Float> = camera.zoomRange
